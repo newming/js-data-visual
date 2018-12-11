@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>使用序列-1</title>
+</head>
+
+<body>
+    <script src="./js/lodash.js"></script>
+    <script src="./js/monent-with-locales.js"></script>
+    <script>
+        moment.locale('zh-cn')
+        let transactions = [{
+                timestamp: 1519864292535,
+                category: '餐饮',
+                price: 6.00
+            },
+            {
+                timestamp: 1519874872261,
+                category: '餐饮',
+                price: 12.00
+            },
+            {
+                timestamp: 1519899849526,
+                category: '餐饮',
+                price: 52.50
+            },
+            {
+                timestamp: 1519953249020,
+                category: '餐饮',
+                price: 4.50
+            },
+            {
+                timestamp: 1519963102270,
+                category: '餐饮',
+                price: 13.50
+            },
+            {
+                timestamp: 1519999849526,
+                category: '餐饮',
+                price: 104.25
+            }
+        ]
+        // 对比 使用序列，增加了 cache 并且将 各个细化属性提到外边，更加方便灵活
+        function createTimeSeries(timeSeriesArray) {
+            const caches = {}
+
+            const timeSeriesObj = {
+                array: timeSeriesArray.map(function (data) {
+                    data.moment = moment(data.timestamp)
+
+                    return data
+                }),
+
+                groupByFormat(formatPattern) {
+                    if (caches[formatPattern]) {
+                        return caches[formatPattern]
+                    }
+
+                    const result = _.groupBy(timeSeriesObj.array, function (data) {
+                        return data.moment.format(formatPattern)
+                    })
+
+                    caches[formatPattern] = result
+
+                    return result
+                },
+
+                groupByDate() {
+                    return timeSeriesObj.groupByFormat('YYYY-MM-DD')
+                },
+
+                groupByWeek() {
+                    return timeSeriesObj.groupByFormat('YYYY-WW')
+                },
+
+                groupByMonth() {
+                    return timeSeriesObj.groupByFormat('YYYY-MM')
+                },
+
+                groupByYear() {
+                    return timeSeriesObj.groupByFormat('YYYY')
+                },
+
+                dates() {
+                    return timeSeriesObj.groupByDate().dates()
+                },
+
+                weeks() {
+                    return timeSeriesObj.groupByWeek().weeks()
+                },
+
+                months() {
+                    return timeSeriesObj.groupByMonth().months()
+                },
+
+                years() {
+                    return timeSeriesObj.groupByYear().years()
+                },
+
+                sum(unit, point) {
+                    switch (unit) {
+                        case 'date':
+                            return timeSeriesObj.groupByDate().sum(point)
+
+                        case 'week':
+                            return timeSeriesObj.groupByWeek().sum(point)
+
+                        case 'month':
+                            return timeSeriesObj.groupByMonth().sum(point)
+
+                        case 'year':
+                            return timeSeriesObj.groupByYear().sum(point)
+                    }
+                },
+
+                average(unit, point) {
+                    switch (unit) {
+                        case 'week':
+                            return timeSeriesObj.groupByWeek().average(point)
+
+                        case 'month':
+                            return timeSeriesObj.groupByMonth().average(point)
+
+                        case 'year':
+                            return timeSeriesObj.groupByYear().average(point)
+                    }
+                }
+            }
+
+            return timeSeriesObj
+        }
+    </script>
+</body>
+
+</html>

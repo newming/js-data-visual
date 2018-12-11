@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>序列集转关系图谱</title>
+</head>
+
+<body>
+    <p>序列集转关系图谱</p>
+    <img src="https://user-gold-cdn.xitu.io/2018/6/17/1640ce283cb81d7f?imageView2/0/w/1280/h/960/format/webp/ignore-error/1"
+        alt="">
+
+    <script src="./js/lodash.js"></script>
+    <script src="./js/arrayUtils.js"></script>
+    <script src="./js/digraph.js"></script>
+    <script>
+        const sequences = [
+            ['A', 'B', 'C'],
+            ['B', 'C', 'D'],
+            ['B', 'D', 'E'],
+            ['B', 'F', 'G'],
+            ['F', 'G', 'H'],
+            ['F', 'G', 'H', 'I'],
+            ['J', 'G'],
+            ['J', 'G', 'H'],
+            ['J', 'G', 'H', 'I']
+        ]
+
+        let vertexId = 0
+        // 实例化顶点，业界通常会使用如 UUID（Universally Unique Identifier，通用唯一识别码）、数据库自增键值等方式，这里简单的使用了自增
+        function newVertex(property) {
+            return new Vertex(++vertexId, property)
+        }
+
+        function isLast(i, length) {
+            return (i + 1) === length
+        }
+
+        function setVertex(vertex) {
+            let index = vertices.findIndex(item => item.property === vertex)
+            if (index > -1) {
+                // 已经创建了该节点
+                return vertices[index].id
+            } else {
+                let newNode = newVertex(vertex)
+                vertices.push(newNode)
+                return newNode.id
+            }
+        }
+
+        // 序列集转关系图谱
+        const vertices = []
+        const edges = []
+        // 生成 vertice edge
+        sequences.forEach(sequence => {
+            let len = sequence.length
+            sequence.forEach((item, i) => {
+                if (isLast(i, len)) {
+                    return
+                }
+                let originalId = setVertex(item)
+                let targetId = setVertex(sequence[i + 1])
+                edges.push(new DirectedEdge(originalId, targetId, 1))
+            })
+        })
+
+        const graph = new Digraph(vertices, edges)
+        console.log(graph)
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>散点图</title>
+    <style>
+        #chart {
+            width: 600px;
+            height: 400px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id='chart'></div>
+
+    <script src="./js/echarts.js"></script>
+    <script>
+        const students = []
+        const n = 50
+
+        const heightRanges = {
+            male: [155, 180],
+            female: [145, 170]
+        }
+
+        function getRandomInt(min, max) {
+            return Math.round(min + Math.random() * (max - min))
+        }
+
+        for (let i = 0; i < n; ++i) {
+            const gender = Math.random() > 0.5 ? 'male' : 'female'
+            const [min, max] = heightRanges[gender]
+
+            const student = {
+                id: i + 1,
+                gender: gender,
+                height: getRandomInt(min, max)
+            }
+
+            students.push(student)
+        }
+
+        console.log(students)
+        //=>
+        // [
+        //   { id: 1, gender: "male", height: 157 },
+        //   { id: 2, gender: "male", height: 165 },
+        //   { id: 3, gender: "female", height: 157 },
+        //   { id: 4, gender: "female", height: 169 },
+        //   ...
+        // ]
+
+        const chartEl = document.querySelector('#chart')
+        const myChart = echarts.init(chartEl)
+        const option = {
+            dataset: {
+                source: students
+            },
+            xAxis: {
+                type: 'category',
+                name: '学号',
+                nameLocation: 'middle',
+                nameGap: 25 // 坐标轴名称与轴线之间的距离 default 15
+            },
+            yAxis: {
+                type: 'value',
+                scale: true, // y轴数值区间缩放
+                name: '身高',
+                nameLocation: 'end'
+            },
+            series: {
+                type: 'scatter',
+                encode: {
+                    x: 'id',
+                    y: 'height'
+                },
+                symbolSize: function (data) {
+                    console.log(data)
+                    return data.height - 140;
+                },
+            },
+            visualMap: {
+                type: 'piecewise', // piecewise 表示的是分段式，continuous 则为连续式
+                dimension: 'gender',
+                pieces: [{
+                        value: 'male',
+                        label: '男生',
+                        color: '#1890ff'
+                    },
+                    {
+                        value: 'female',
+                        label: '女生',
+                        color: '#f5222d'
+                    }
+                ],
+                orient: 'horizontal'
+            }
+        }
+
+        myChart.setOption(option)
+    </script>
+</body>
+
+</html>

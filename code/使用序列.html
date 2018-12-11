@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>使用序列</title>
+</head>
+
+<body>
+    <script src="./js/lodash.js"></script>
+    <script src="./js/monent-with-locales.js"></script>
+    <script>
+        moment.locale('zh-cn')
+
+        let transactions = [{
+                timestamp: 1519864292535,
+                category: '餐饮',
+                price: 6.00
+            },
+            {
+                timestamp: 1519874872261,
+                category: '餐饮',
+                price: 12.00
+            },
+            {
+                timestamp: 1519899849526,
+                category: '餐饮',
+                price: 52.50
+            },
+            {
+                timestamp: 1519953249020,
+                category: '餐饮',
+                price: 4.50
+            },
+            {
+                timestamp: 1519963102270,
+                category: '餐饮',
+                price: 13.50
+            },
+            {
+                timestamp: 1519999849526,
+                category: '餐饮',
+                price: 104.25
+            }
+        ]
+
+        /** 第一部分 简单使用 monment 进行统计 */
+        // transactions = transactions.map(function (data) {
+        //     data.moment = moment(data.timestamp)
+        //     return data
+        // })
+        // console.log(transactions)
+
+        // // 按天分组
+        // const transactionsGroupedByDate = _.groupBy(transactions, function (transaction) {
+        //     return transaction.moment.format('YYYY-MM-DD')
+        // })
+        // console.log(transactionsGroupedByDate)
+
+        // // 按周分组
+        // const transactionsGroupedByWeek = _.groupBy(transactions, function (transaction) {
+        //     return transaction.moment.format('YYYY-WW')
+        // })
+        // console.log(transactionsGroupedByWeek)
+
+        // // 按月分组
+        // const transactionsGroupedByMonth = _.groupBy(transactions, function (transaction) {
+        //     return transaction.moment.format('YYYY-MM')
+        // })
+        // console.log(transactionsGroupedByMonth)
+
+        // // 按年分组
+        // const transactionsGroupedByYear = _.groupBy(transactions, function (transaction) {
+        //     return transaction.moment.format('YYYY')
+        // })
+        // console.log(transactionsGroupedByYear)
+
+        /** 第二部分 */
+        // 时间序列工具
+        function createTimeSeries(timeSeriesArray) {
+            const timeSeriesObj = {
+                array: timeSeriesArray.map(function (data) {
+                    data.moment = moment(data.timestamp)
+                    return data
+                }),
+                groupByFormat(formatPattern) {
+                    return _.groupBy(timeSeriesObj.array, function (data) {
+                        return data.moment.format(formatPattern)
+                    })
+                },
+                // groupByDate() {
+                //     return timeSeriesObj.groupByFormat('YYYY-MM-DD')
+                // },
+                // 按天粒度更加精细的处理数据，包含当前的 key 和 sum
+                groupByDate() {
+                    const groupedResult = {
+                        map: timeSeriesObj.groupByFormat('YYYY-MM-DD'),
+
+                        dates() {
+                            return _.keys(groupedResult.map)
+                        },
+
+                        sum(date) {
+                            return _.sumBy(groupedResult.map[date], 'price')
+                        }
+                    }
+                    return groupedResult
+                },
+                // groupByWeek() {
+                //     return timeSeriesObj.groupByFormat('YYYY-WW')
+                // },
+                // 更加精细的按周统计
+                groupByWeek() {
+                    const groupedByDate = timeSeriesObj.groupByDate()
+                    // moment.js 可以自动检测我们传入的时间参数的格式（整数时间戳、时间字符串、日期字符串等等），并转化为标准的 Moment 时间对象，如下边传入的是 groupedByDate.dates()
+                    // 也可以像上边 groupByDate 直接调用 groupByFormat
+                    const groupedResult = {
+                        map: _.groupBy(groupedByDate.dates(), function (date) {
+                            return moment(date).format('YYYY-WW')
+                        }),
+
+                        weeks() {
+                            return _.keys(groupedResult.map)
+                        },
+
+                        sum(week) {
+                            const dates = groupedResult.map[week] // 拿到了当前周下的天
+
+                            return _.sumBy(dates, function (date) {
+                                return groupedByDate.sum(date)
+                            })
+                        },
+                        // 一星期内每天开销的平均值
+                        average(week) {
+                            const dates = groupedResult.map[week]
+                            const sum = groupedResult.sum(week)
+
+                            return sum / dates.length
+                        }
+                    }
+
+                    return groupedResult
+                },
+                // groupByMonth() {
+                //     return timeSeriesObj.groupByFormat('YYYY-MM')
+                // },
+                groupByMonth() {
+                    const groupedByDate = timeSeriesObj.groupByDate()
+
+                    const groupedResult = {
+                        map: _.groupBy(groupedByDate.dates(), function (date) {
+                            return moment(date).format('YYYY-MM')
+                        }),
+
+                        months() {
+                            return _.keys(groupedResult.map)
+                        },
+
+                        sum(month) {
+                            const dates = groupedResult.map[month] // 拿到了当前月下的天
+
+                            return _.sumBy(dates, function (date) {
+                                return groupedByDate.sum(date)
+                            })
+                        },
+
+                        average(month) {
+                            const dates = groupedResult.map[month] // 拿到了当前月下的天
+                            const sum = groupedResult.sum(month)
+
+                            return sum / dates.length
+                        }
+                    }
+                    return groupedResult
+                },
+                // groupByYear() {
+                //     return timeSeriesObj.groupByFormat('YYYY')
+                // }
+                groupByYear() {
+                    const groupedByDate = timeSeriesObj.groupByDate()
+
+                    const groupedResult = {
+                        map: _.groupBy(groupedByDate.dates(), function (date) {
+                            return moment(date).format('YYYY')
+                        }),
+
+                        years() {
+                            return _.keys(groupedResult.map)
+                        },
+
+                        sum(year) {
+                            const dates = groupedResult.map[year] // 拿到了当前月下的天
+
+                            return _.sumBy(dates, function (date) {
+                                return groupedByDate.sum(date)
+                            })
+                        },
+
+                        average(year) {
+                            const dates = groupedResult.map[year] // 拿到了当前月下的天
+                            const sum = groupedResult.sum(year)
+
+                            return sum / dates.length
+                        }
+                    }
+                    return groupedResult
+                }
+            }
+
+            return timeSeriesObj
+        }
+
+        const timeSeries = createTimeSeries(transactions)
+
+        // 天操作
+        const groupedByDateSeries = timeSeries.groupByDate()
+        console.log(groupedByDateSeries.dates())
+        const firstDate = groupedByDateSeries.dates()[0]
+        console.log(groupedByDateSeries.sum(firstDate))
+
+        // 一次性打印所有日期的统计结果
+        const everyDateSeries = groupedByDateSeries.dates().map(function (date) {
+            return {
+                date: date,
+                sum: groupedByDateSeries.sum(date)
+            }
+        })
+        console.log(everyDateSeries)
+
+        // 周操作
+        const groupedByWeekSeries = timeSeries.groupByWeek()
+        console.log(groupedByWeekSeries.map)
+        const groupWeeks = groupedByWeekSeries.weeks()
+        console.log(groupWeeks)
+        const firstWeek = groupWeeks[0]
+        console.log(groupedByWeekSeries.sum(firstWeek))
+        console.log(groupedByWeekSeries.average(firstWeek))
+
+        // 月操作
+        const groupedByMonthSeries = timeSeries.groupByMonth()
+        console.log(groupedByMonthSeries.map)
+        const groupMonths = groupedByMonthSeries.months()
+        console.log(groupMonths)
+        const firstMonth = groupMonths[0]
+        console.log(groupedByMonthSeries.sum(firstMonth))
+        console.log(groupedByMonthSeries.average(firstMonth))
+
+        // 年操作
+        const groupedByYearSeries = timeSeries.groupByYear()
+        console.log(groupedByYearSeries.map)
+        const groupYears = groupedByYearSeries.years()
+        console.log(groupYears)
+        const firstYear = groupYears[0]
+        console.log(groupedByYearSeries.sum(firstYear))
+        console.log(groupedByYearSeries.average(firstYear))
+    </script>
+</body>
+
+</html>

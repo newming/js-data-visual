@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>折线图</title>
+    <style>
+        #chart {
+            width: 600px;
+            height: 400px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id='chart'></div>
+    <img src="https://user-gold-cdn.xitu.io/2018/7/21/164bd31c470076a9?imageView2/0/w/1280/h/960/format/webp/ignore-error/1"
+        alt="">
+
+    <script src="./js/echarts.js"></script>
+    <script>
+        // 生成随机时间序列，涉及到几个公式可以看看
+
+        const X = [100]
+        const n = 50 - 1
+        const r = 0.1
+
+        function randomCoefficient(r) {
+            const rand = Math.random()
+            const coefficient = (rand - 0.5) * 2 * r
+
+            return coefficient
+        }
+
+        for (let i = 0; i < n; ++i) {
+            const coefficient = randomCoefficient(r)
+            const newValue = X[i] * (1 + coefficient)
+
+            X.push(newValue)
+        }
+
+        console.log(X) //=> [ 100, 95.23, ... ]
+
+        const data = X.map(function (x, i) {
+            return {
+                time: i + 1,
+                value: x
+            }
+        })
+        console.log(data)
+
+        const option = {
+            dataset: {
+                source: data
+            },
+            xAxis: {
+                type: 'value',
+                name: 'i',
+                nameLocation: 'middle',
+                nameGap: 25
+            },
+            yAxis: {
+                type: 'value',
+                scale: true,
+                name: 'x',
+                nameLocation: 'end'
+            },
+            series: {
+                type: 'line',
+                smooth: true,
+                encode: {
+                    x: 'time',
+                    y: 'value'
+                }
+            }
+        }
+
+        const chartEl = document.querySelector('#chart')
+        const myChart = echarts.init(chartEl)
+        myChart.setOption(option)
+    </script>
+</body>
+
+</html>

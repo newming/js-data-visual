@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title></title>
+</head>
+
+<body>
+    <p>1. 各首端为独立根节点</p>
+    <img src="https://user-gold-cdn.xitu.io/2018/6/17/1640ce2868273600?imageslim" alt="">
+    <img src="https://user-gold-cdn.xitu.io/2018/6/17/1640ce288881f902?imageView2/0/w/1280/h/960/format/webp/ignore-error/1"
+        alt="">
+
+    <p>2. 各首端不为独立根节点</p>
+    <img src="https://user-gold-cdn.xitu.io/2018/6/17/1640ce28906329d8?imageView2/0/w/1280/h/960/format/webp/ignore-error/1"
+        alt="">
+
+    <script src="./js/lodash.js"></script>
+    <script src="./js/tree.js"></script>
+    <script src="./js/arrayUtils.js"></script>
+    <script>
+        const sequences = [
+            ['A', 'B', 'C'],
+            ['B', 'C', 'D'],
+            ['B', 'D', 'E'],
+            ['B', 'F', 'G'],
+            ['F', 'G', 'H'],
+            ['F', 'G', 'H', 'I'],
+            ['J', 'G'],
+            ['J', 'G', 'H'],
+            ['J', 'G', 'H', 'I']
+        ]
+        // 2. 各首端不为独立根节点
+        function isLast(i, length) {
+            return (i + 1) === length
+        }
+        // 将每个序列(一维数组)拆分成多个节点对，即父节点和子节点的配对关系(tuple)
+        function seq2Pairs(seq) {
+            return seq
+                .map(function (node, i) {
+                    if (isLast(i, seq.length)) {
+                        return false // 如果是最后一个，返回 false 在 filter 那里就过滤了
+                    }
+
+                    return [node, seq[i + 1]] // 如果不是最后一个，则可以组合成一组 tuple 元素，如 ['A', 'B']
+                })
+                .filter(function (pair) {
+                    return pair && pair.length === 2
+                })
+        }
+        // const pairsTuple = seq2Pairs([ 'A', 'B', 'C' ])
+        // console.log(pairsTuple)
+        //=> [
+        //   ["A", "B"],
+        //   ["B", "C"]
+        // ]
+
+        // 统计节点的度
+        function analyzeDegrees(pairs) {
+            /**
+             * @description {Object} analysis 每个 node 的 degrees {A: {in: 0, out: 1}, ...}
+             * @description {Function} toPairs 将对象转为类似 tuple 的数组，对象的属性名为第一项，属性值为第二项 [[A, {in: 0, out: 1}], ...]
+             * @return {Array} [{node: 'A', in: 0, out: 1}, ...]
+             */
+            const analysis = {}
+
+            for (const pair of pairs) {
+                const [left, right] = pair // pair: ['A', 'B']
+
+                if (!analysis[left]) {
+                    analysis[left] = { in: 0,
+                        out: 0
+                    }
+                }
+                if (!analysis[right]) {
+                    analysis[right] = { in: 0,
+                        out: 0
+                    }
+                }
+
+                analysis[left].out += 1
+                analysis[right].in += 1
+            }
+
+            return _.toPairs(analysis)
+                .map(([node, degrees]) => ({
+                    /**
+                     * @param {Array} item 为数组 [A, {in: 0, out: 1}]，解构后 node 为 A，degress 为 {in: 0, out: 1}
+                     */
+                    node,
+                    ...degrees
+                }))
+        }
+        // 通过判断入度找出根节点，入度为0则为根节点
+        function findRootNodes(analysis) {
+            return analysis.filter(({ in: inDegree
+            }) => inDegree === 0)
+        }
+        // sequences 一个二维数组展开为 父节点和子节点的配对关系(tuple)
+        const pairs = sequences
+            .map(function (sequence) {
+                // seq2Pairs 处理的是 ['A', 'B', 'C'] 这样一维数组，所以 sequences 需要 map
+                // seq2Pairs 返回的是 [['A', 'B'], ['B', 'C']] 二维数组，所以 map 返回的数组为 [[['A', 'B'], ['B', 'C']], [['B', 'C'], ['C', 'D']]] 所以需要下边的 reduce 进行 concat
+                return seq2Pairs(sequence)
+            })
+            .reduce(function (left, right) {
+                /**
+                 * @param {Array} left 二维数组 [['A', 'B'], ['B', 'C']]
+                 * @param {Array} right 二维数组 [['B', 'C'], ['C', 'D']]
+                 * @return {Array} 二维数组 [['A', 'B'], ['B', 'C'], ['B', 'C'], ['C', 'D']]
+                */
+                return left.concat(right)
+            })
+        const analysis = analyzeDegrees(pairs)
+        const rootNodes = findRootNodes(analysis).map(function (result) {
+            return result.node
+        })
+        // console.log(rootNodes)
+        //=> ['A', 'J']
+
+        const root = new Node('*')
+        const tree = new Tree(root)
+
+        // 将两个根结点挂到 root 上
+        for (const nodeName of rootNodes) {
+            const node = new Node(nodeName)
+
+            root.addChild(node)
+        }
+
+        const penddingSeqs = sequences.slice()
+
+        while (penddingSeqs.length > 0) {
+            const currentSeq = penddingSeqs.shift()
+            const hit = tree.search(function (node) {
+                return node.name === currentSeq[0]
+            }).shift()
+
+            // 如果当前树上没有该节点，就把它往后放放，因为根结点已经在上边挂到 root 上了
+            if (!hit) {
+                penddingSeqs.push(currentSeq)
+                continue
+            }
+
+            let lastNode = hit
+            currentSeq.shift()
+
+            while (currentSeq.length > 0) {
+                const currentNodeName = currentSeq.shift()
+
+                const currentNode = lastNode.children.find(function (node) {
+                    return node.name === currentNodeName
+                })
+
+                if (currentNode) {
+                    lastNode = currentNode
+                } else {
+                    const node = new Node(currentNodeName)
+                    lastNode.addChild(node)
+
+                    lastNode = node
+                }
+            }
+        }
+
+        console.log(root.toString())
+        //=>
+        // *
+        //   A
+        //     B
+        //       C
+        //         D
+        //       D
+        //         E
+        //       F
+        //         G
+        //           H
+        //             I
+        //   J
+        //     G
+        //       H
+        //         I
+    </script>
+</body>
+
+</html>
