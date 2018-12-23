@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>柱状图</title>
+    <style>
+        #chart {
+            width: 600px;
+            height: 400px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id='chart'></div>
+
+    <script src="./js/echarts.js"></script>
+    <script>
+        const N = []
+        const P = []
+        const n = 4
+
+        function getRandomInt(min, max) {
+            return Math.round(min + Math.random() * (max - min))
+        }
+
+        for (let i = 0; i < n; ++i) {
+            N.push(getRandomInt(1000, 1500))
+            P.push(getRandomInt(85, 100) / 100)
+        }
+
+        const schools = []
+
+        for (let i = 0; i < n; ++i) {
+            schools.push({
+                name: String.fromCharCode(65 + i),
+                N: N[i],
+                P: P[i]
+            })
+        }
+        console.log(schools)
+        // 绘制图表
+        const option = {
+            dataset: {
+                source: schools
+            },
+            xAxis: [{
+                type: 'category'
+            }],
+            yAxis: [{
+                    type: 'value',
+                    name: '本科录取人数'
+                },
+                {
+                    type: 'value',
+                    name: '本科率'
+                }
+            ],
+            series: [
+                {
+                    type: 'bar',
+                    encode: {
+                        x: 'name',
+                        y: 'N'
+                    },
+                    label: {
+                        normal: {
+                            show: true,
+                            position: 'top'
+                        }
+                    },
+                    markLine: {
+                        data: [{
+                            type: 'average',
+                            name: '平均值',
+                            lineStyle: {
+                                color: '#ffa39e'
+                            }
+                        }]
+                    }
+                },
+                {
+                    type: 'bar',
+                    yAxisIndex: 1, // 绑定副 Y 坐标轴
+                    encode: {
+                        x: 'name',
+                        y: 'P'
+                    },
+                    label: {
+                        normal: {
+                            show: true,
+
+                            position: 'top'
+                        }
+                    },
+                    markLine: {
+                        data: [{
+                            type: 'average',
+                            name: '平均值',
+                            lineStyle: {
+                                color: '#096dd9'
+                            }
+                        }]
+                    }
+                }
+            ]
+        }
+        const chartEl = document.querySelector('#chart')
+        const myChart = echarts.init(chartEl)
+        myChart.setOption(option)
+    </script>
+</body>
+
+</html>
